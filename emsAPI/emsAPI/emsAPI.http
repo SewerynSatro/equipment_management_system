@@ -1,0 +1,6 @@
+@emsAPI_HostAddress = http://localhost:5240
+
+GET {{emsAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
