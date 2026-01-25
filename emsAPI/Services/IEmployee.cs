@@ -8,5 +8,5 @@ public interface IEmployee
     public Task<Employee?> ReadOne(int id);
     public Task<List<Employee>> ReadAll();
     public Task<bool> Delete(int id);
-    public Task<bool> Update(int id, Employee uOrder);
+    public Task<bool> Update(int id, Employee employee);
 }
