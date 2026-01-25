@@ -4,44 +4,55 @@ using Models;
 
 namespace Services;
 
-public class DeviceTypeService
+public class DeviceTypeService : IDeviceTypeService
 {
-    private readonly AppDbContext _db;
+    private readonly AppDbContext _context;
 
-    public DeviceTypeService(AppDbContext db)
+    public DeviceTypeService(AppDbContext context)
     {
-        _db = db;
+        _context = context;
     }
 
-    public async Task<List<DeviceType>> GetAllAsync()
+    public async Task<bool> Create(DeviceType deviceType)
     {
-        return await _db.DeviceTypes
-            .Include(dt => dt.Devices)
-            .ToListAsync();
+        await _context.DeviceTypes.AddAsync(deviceType);
+        var created = await _context.SaveChangesAsync();
+        return created > 0;
     }
 
-    public async Task<DeviceType?> GetByIdAsync(int id)
+    public async Task<DeviceType?> ReadOne(int id)
     {
-        return await _db.DeviceTypes
+        return await _context.DeviceTypes
             .Include(dt => dt.Devices)
             .FirstOrDefaultAsync(dt => dt.Id == id);
     }
 
-    public async Task<DeviceType> CreateAsync(DeviceType deviceType)
+    public async Task<List<DeviceType>> ReadAll()
     {
-        _db.DeviceTypes.Add(deviceType);
-        await _db.SaveChangesAsync();
-        return deviceType;
+        return await _context.DeviceTypes
+            .Include(dt => dt.Devices)
+            .ToListAsync();
     }
 
-    public async Task<bool> DeleteAsync(int id)
+    public async Task<bool> Delete(int id)
     {
-        var deviceType = await _db.DeviceTypes.FindAsync(id);
-        if (deviceType is null)
-            return false;
+        var deviceType = await _context.DeviceTypes.FindAsync(id);
+        if (deviceType == null) return false;
 
-        _db.DeviceTypes.Remove(deviceType);
-        await _db.SaveChangesAsync();
-        return true;
+        _context.DeviceTypes.Remove(deviceType);
+        var deleted = await _context.SaveChangesAsync();
+        return deleted > 0;
+    }
+
+    public async Task<bool> Update(int id, DeviceType updatedDeviceType)
+    {
+        var deviceType = await _context.DeviceTypes.FindAsync(id);
+        if (deviceType == null) return false;
+
+        deviceType.Name = updatedDeviceType.Name;
+
+        _context.DeviceTypes.Update(deviceType);
+        var updated = await _context.SaveChangesAsync();
+        return updated > 0;
     }
 }
