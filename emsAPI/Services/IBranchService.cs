@@ -8,5 +8,5 @@ public interface IBranchService
     public Task<Branch?> ReadOne(int id);
     public Task<List<Branch>> ReadAll();
     public Task<bool> Delete(int id);
-    public Task<bool> Update(int id, Branch branch);
+    public Task<bool> Update(int id, Branch updatedBranch);
 }
