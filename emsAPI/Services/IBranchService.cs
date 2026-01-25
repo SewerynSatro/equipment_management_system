@@ -2,7 +2,7 @@ using Models;
 
 namespace Services;
 
-public interface IBranch
+public interface IBranchService
 {
     public Task<bool> Create(Branch branch);
     public Task<Branch?> ReadOne(int id);

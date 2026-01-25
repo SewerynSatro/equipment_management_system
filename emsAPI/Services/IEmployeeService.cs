@@ -2,7 +2,7 @@ using Models;
 
 namespace Services;
 
-public interface IEmployee
+public interface IEmployeeService
 {
     public Task<bool> Create(Employee employee);
     public Task<Employee?> ReadOne(int id);
