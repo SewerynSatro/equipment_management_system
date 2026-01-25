@@ -4,7 +4,7 @@ using Data;
 
 namespace Services;
 
-public class EmployeeService : IEmployee
+public class EmployeeService : IEmployeeService
 {
     private readonly AppDbContext _context;
 
