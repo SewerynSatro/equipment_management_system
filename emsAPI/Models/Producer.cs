@@ -12,5 +12,5 @@ public class Producer
     public string Name { get; set; } = null!;
     
     
-    public ICollection<Device> Device { get; set; } = new List<Device>();
+    public ICollection<Device> Devices { get; set; } = new List<Device>();
 }gi
