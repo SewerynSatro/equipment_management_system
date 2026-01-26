@@ -120,6 +120,27 @@ public class LoanService : ILoanService
             .ToListAsync();
     }
 
+    public async Task<bool> Return(int id)
+    {
+        var loan = await _context.Loans.FindAsync(id);
+        if (loan == null)
+            return false;
+
+        if (loan.Returned)
+            return false;
+
+        var device = await _context.Devices.FindAsync(loan.DeviceId);
+        if (device == null)
+            return false;
+
+        loan.Returned = true;
+        loan.ReturnDate = DateTime.UtcNow;
+        device.Available = true;
+
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
     public async Task<bool> Delete(int id)
     {
         var loan = await _context.Loans.FindAsync(id);

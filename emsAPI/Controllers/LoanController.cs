@@ -88,4 +88,14 @@ public class LoanController : ControllerBase
         var loans = await _service.ShowActiveLoans();
         return Ok(loans);
     }
+    
+    [HttpPost("{id}/return")]
+    public async Task<IActionResult> Return(int id)
+    {
+        var ok = await _service.Return(id);
+        if (!ok)
+            return BadRequest("Could not return loan");
+
+        return Ok("Returned");
+    }
 }

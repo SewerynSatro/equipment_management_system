@@ -12,4 +12,5 @@ public interface ILoanService
     public Task<List<Loan>?> ShowUserActiveLoans(int userId);
     public Task<List<Loan>?> ShowUserHistory(int userId);
     public Task<List<Loan>> ShowActiveLoans();
+    public Task<bool> Return(int id);
 }
