@@ -20,7 +20,8 @@ public class Program
         builder.Services.AddScoped<IDeviceService, DeviceService>();
         builder.Services.AddScoped<IDeviceTypeService, DeviceTypeService>();
         builder.Services.AddScoped<IBranchService, BranchService>();
-
+        builder.Services.AddScoped<IEmployeeService, EmployeeService>();
+        builder.Services.AddScoped<ILoanService, LoanService>();
 
         var app = builder.Build();
 
