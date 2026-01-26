@@ -18,6 +18,9 @@ public class Program
         builder.Services.AddOpenApi();
         builder.Services.AddScoped<IProducerService, ProducerService>();
         builder.Services.AddScoped<IDeviceService, DeviceService>();
+        builder.Services.AddScoped<IDeviceTypeService, DeviceTypeService>();
+        builder.Services.AddScoped<IBranchService, BranchService>();
+
 
         var app = builder.Build();
 
