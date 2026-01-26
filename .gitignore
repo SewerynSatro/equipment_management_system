@@ -4,6 +4,8 @@
 .idea
 bin
 obj
+.vs
+emsAPI.csproj.user
 
 # User-specific stuff
 .idea/**/workspace.xml
