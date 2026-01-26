@@ -76,6 +76,50 @@ public class LoanService : ILoanService
         return true;
     }
 
+    public async Task<List<Loan>?> ShowUserActiveLoans(int userId)
+    {
+        var userExists = await _context.Employees.AnyAsync(e => e.Id == userId);
+        if (!userExists)
+            return null;
+
+        return await _context.Loans
+            .Include(l => l.Employee)
+            .Include(l => l.Device)
+            .ThenInclude(d => d.Type)
+            .Include(l => l.Device)
+            .ThenInclude(d => d.Producer)
+            .Where(l => l.EmployeeId == userId && !l.Returned)
+            .ToListAsync();
+    }
+
+    public async Task<List<Loan>?> ShowUserHistory(int userId)
+    {
+        var userExists = await _context.Employees.AnyAsync(e => e.Id == userId);
+        if (!userExists)
+            return null;
+
+        return await _context.Loans
+            .Include(l => l.Employee)
+            .Include(l => l.Device)
+            .ThenInclude(d => d.Type)
+            .Include(l => l.Device)
+            .ThenInclude(d => d.Producer)
+            .Where(l => l.EmployeeId == userId && l.Returned)
+            .ToListAsync();
+    }
+
+    public async Task<List<Loan>> ShowActiveLoans()
+    {
+        return await _context.Loans
+            .Include(l => l.Employee)
+            .Include(l => l.Device)
+            .ThenInclude(d => d.Type)
+            .Include(l => l.Device)
+            .ThenInclude(d => d.Producer)
+            .Where(l => !l.Returned)
+            .ToListAsync();
+    }
+
     public async Task<bool> Delete(int id)
     {
         var loan = await _context.Loans.FindAsync(id);

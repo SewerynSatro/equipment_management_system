@@ -9,6 +9,7 @@ public interface ILoanService
     public Task<List<Loan>> ReadAll();
     public Task<bool> Delete(int id);
     public Task<bool> Update(int id, Loan updatedLoan);
-    // TODO
-    // methods for showing users current devices, user device history, all active loans etc...
+    public Task<List<Loan>?> ShowUserActiveLoans(int userId);
+    public Task<List<Loan>?> ShowUserHistory(int userId);
+    public Task<List<Loan>> ShowActiveLoans();
 }

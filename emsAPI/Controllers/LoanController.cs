@@ -61,4 +61,31 @@ public class LoanController : ControllerBase
 
         return Ok("Deleted");
     }
+    
+    [HttpGet("user/{userId}/active")]
+    public async Task<IActionResult> GetUserActiveLoans(int userId)
+    {
+        var loans = await _service.ShowUserActiveLoans(userId);
+        if (loans == null)
+            return NotFound($"User with id {userId} does not exist");
+
+        return Ok(loans);
+    }
+
+    [HttpGet("user/{userId}/history")]
+    public async Task<IActionResult> GetUserLoanHistory(int userId)
+    {
+        var loans = await _service.ShowUserHistory(userId);
+        if (loans == null)
+            return NotFound($"User with id {userId} does not exist");
+
+        return Ok(loans);
+    }
+
+    [HttpGet("active")]
+    public async Task<IActionResult> GetActiveLoans()
+    {
+        var loans = await _service.ShowActiveLoans();
+        return Ok(loans);
+    }
 }
