@@ -15,6 +15,19 @@ public class DeviceTypeService : IDeviceTypeService
 
     public async Task<bool> Create(DeviceType deviceType)
     {
+        if (string.IsNullOrWhiteSpace(deviceType.Name))
+            return false;
+
+        var normalized = deviceType.Name.Trim().ToLower();
+
+        var exists = await _context.DeviceTypes
+            .AnyAsync(dt => dt.Name.ToLower() == normalized);
+
+        if (exists)
+            return false;
+
+        deviceType.Name = deviceType.Name.Trim();
+
         await _context.DeviceTypes.AddAsync(deviceType);
         var created = await _context.SaveChangesAsync();
         return created > 0;

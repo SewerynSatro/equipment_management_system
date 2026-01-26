@@ -15,6 +15,19 @@ public class ProducerService : IProducerService
 
     public async Task<bool> Create(Producer producer)
     {
+        if (string.IsNullOrWhiteSpace(producer.Name))
+            return false;
+
+        var normalized = producer.Name.Trim().ToLower();
+
+        var exists = await _context.Producers
+            .AnyAsync(p => p.Name.ToLower() == normalized);
+
+        if (exists)
+            return false;
+
+        producer.Name = producer.Name.Trim();
+
         await _context.Producers.AddAsync(producer);
         var created = await _context.SaveChangesAsync();
         return created > 0;

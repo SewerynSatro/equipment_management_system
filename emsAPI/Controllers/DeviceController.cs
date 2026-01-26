@@ -37,7 +37,7 @@ public class DeviceController : ControllerBase
     {
         var ok = await _s.Create(device);
         if (!ok)
-            return BadRequest("Could not create device");
+            return BadRequest("Device with this serial number already exists.");
 
         return CreatedAtAction(nameof(GetOne), new { id = device.Id }, device);
     }
@@ -60,5 +60,26 @@ public class DeviceController : ControllerBase
             return NotFound("Could not delete device");
 
         return Ok("Deleted");
+    }
+    
+    [HttpGet("available")]
+    public async Task<IActionResult> GetAvailable()
+    {
+        var devices = await _s.ReadAvailable();
+        return Ok(devices);
+    }
+    
+    [HttpGet("producer/{producerId:int}")]
+    public async Task<IActionResult> GetByProducer(int producerId)
+    {
+        var devices = await _s.ReadByProducer(producerId);
+        return Ok(devices);
+    }
+
+    [HttpGet("type/{typeId:int}")]
+    public async Task<IActionResult> GetByType(int typeId)
+    {
+        var devices = await _s.ReadByType(typeId);
+        return Ok(devices);
     }
 }
