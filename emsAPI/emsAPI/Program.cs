@@ -1,5 +1,6 @@
 using Data;
 using Microsoft.EntityFrameworkCore;
+using Services;
 
 namespace emsAPI;
 
@@ -15,6 +16,7 @@ public class Program
         builder.Services.AddControllers();
         builder.Services.AddAuthorization();
         builder.Services.AddOpenApi();
+        builder.Services.AddScoped<IProducerService, ProducerService>();
 
         var app = builder.Build();
 
