@@ -18,7 +18,7 @@ public class Employee
 
     [Required] 
     public int BranchId { get; set; }
-    public Branch Branch { get; set; }
+    public required Branch Branch { get; set; }
     
     public ICollection<Loan> Loans { get; set; } = new List<Loan>();
 }
