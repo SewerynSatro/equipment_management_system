@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: ems_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: emsdb
+      MYSQL_USER: emsuser
+      MYSQL_PASSWORD: emspassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - ems_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      interval: 10s
+      retries: 5
+
+  app:
+    build: .
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__DefaultConnection: "server=mysql;port=3306;database=emsdb;user=emsuser;password=emspassword"
+    ports:
+      - "5000:5000"
+    command: bash -c "dotnet ef database update && dotnet run --urls http://0.0.0.0:5000"
+
+volumes:
+  ems_db_data:
