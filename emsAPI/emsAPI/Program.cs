@@ -21,7 +21,6 @@ public class Program
         builder.Services.AddScoped<IDeviceTypeService, DeviceTypeService>();
         builder.Services.AddScoped<IBranchService, BranchService>();
 
-
         var app = builder.Build();
 
         if (app.Environment.IsDevelopment())
