@@ -35,22 +35,30 @@ public class DeviceController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Post([FromBody] Device device)
     {
+        if (string.IsNullOrWhiteSpace(device.SerialNumber))
+            return BadRequest("Serial number is required.");
+
         var ok = await _s.Create(device);
         if (!ok)
-            return BadRequest("Device with this serial number already exists.");
+            return Conflict("Device with this serial number already exists.");
 
         return CreatedAtAction(nameof(GetOne), new { id = device.Id }, device);
     }
 
+
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Put(int id, [FromBody] Device device)
     {
+        if (string.IsNullOrWhiteSpace(device.SerialNumber))
+            return BadRequest("Serial number is required.");
+
         var ok = await _s.Update(id, device);
         if (!ok)
-            return BadRequest("Could not update device");
+            return Conflict("Device with this serial number already exists.");
 
         return Ok("Updated");
     }
+
 
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
