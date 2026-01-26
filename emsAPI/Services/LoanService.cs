@@ -76,6 +76,71 @@ public class LoanService : ILoanService
         return true;
     }
 
+    public async Task<List<Loan>?> ShowUserActiveLoans(int userId)
+    {
+        var userExists = await _context.Employees.AnyAsync(e => e.Id == userId);
+        if (!userExists)
+            return null;
+
+        return await _context.Loans
+            .Include(l => l.Employee)
+            .Include(l => l.Device)
+            .ThenInclude(d => d.Type)
+            .Include(l => l.Device)
+            .ThenInclude(d => d.Producer)
+            .Where(l => l.EmployeeId == userId && !l.Returned)
+            .ToListAsync();
+    }
+
+    public async Task<List<Loan>?> ShowUserHistory(int userId)
+    {
+        var userExists = await _context.Employees.AnyAsync(e => e.Id == userId);
+        if (!userExists)
+            return null;
+
+        return await _context.Loans
+            .Include(l => l.Employee)
+            .Include(l => l.Device)
+            .ThenInclude(d => d.Type)
+            .Include(l => l.Device)
+            .ThenInclude(d => d.Producer)
+            .Where(l => l.EmployeeId == userId && l.Returned)
+            .ToListAsync();
+    }
+
+    public async Task<List<Loan>> ShowActiveLoans()
+    {
+        return await _context.Loans
+            .Include(l => l.Employee)
+            .Include(l => l.Device)
+            .ThenInclude(d => d.Type)
+            .Include(l => l.Device)
+            .ThenInclude(d => d.Producer)
+            .Where(l => !l.Returned)
+            .ToListAsync();
+    }
+
+    public async Task<bool> Return(int id)
+    {
+        var loan = await _context.Loans.FindAsync(id);
+        if (loan == null)
+            return false;
+
+        if (loan.Returned)
+            return false;
+
+        var device = await _context.Devices.FindAsync(loan.DeviceId);
+        if (device == null)
+            return false;
+
+        loan.Returned = true;
+        loan.ReturnDate = DateTime.UtcNow;
+        device.Available = true;
+
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
     public async Task<bool> Delete(int id)
     {
         var loan = await _context.Loans.FindAsync(id);
