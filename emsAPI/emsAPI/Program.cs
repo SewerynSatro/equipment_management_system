@@ -17,7 +17,10 @@ public class Program
             .AddApplicationPart(typeof(Controllers.ControllersMarker).Assembly);
         
         builder.Services.AddDbContext<AppDbContext>(options =>
-            options.UseInMemoryDatabase("LocalTestDb"));
+            options.UseMySql(
+                builder.Configuration.GetConnectionString("DefaultConnection"),
+                ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("DefaultConnection"))
+            ));
 
         builder.Services.AddControllers();
         builder.Services.AddAuthorization();
