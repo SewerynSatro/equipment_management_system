@@ -17,6 +17,7 @@ public class Program
         builder.Services.AddAuthorization();
         builder.Services.AddOpenApi();
         builder.Services.AddScoped<IProducerService, ProducerService>();
+        builder.Services.AddScoped<IDeviceService, DeviceService>();
 
         var app = builder.Build();
 
