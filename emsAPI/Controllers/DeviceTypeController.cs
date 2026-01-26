@@ -37,7 +37,7 @@ public class DeviceTypeController : ControllerBase
     {
         var ok = await _s.Create(deviceType);
         if (!ok)
-            return BadRequest("Could not create device type");
+            return BadRequest("Device type already exists or name is invalid.");
 
         return CreatedAtAction(nameof(GetOne), new { id = deviceType.Id }, deviceType);
     }

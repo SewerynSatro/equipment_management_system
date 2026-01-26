@@ -20,5 +20,17 @@ public class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<Producer>()
+            .HasIndex(p => p.Name)
+            .IsUnique();
+
+        modelBuilder.Entity<DeviceType>()
+            .HasIndex(dt => dt.Name)
+            .IsUnique();
+
+        modelBuilder.Entity<Device>()
+            .HasIndex(d => d.SerialNumber)
+            .IsUnique();
     }
 }

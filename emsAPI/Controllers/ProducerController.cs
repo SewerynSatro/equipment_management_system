@@ -37,7 +37,7 @@ public class ProducerController : ControllerBase
     {
         var ok = await _s.Create(producer);
         if (!ok)
-            return BadRequest("Could not create producer");
+            return BadRequest("Producer already exists or name is invalid.");
 
         return CreatedAtAction(nameof(GetOne), new { id = producer.Id }, producer);
     }

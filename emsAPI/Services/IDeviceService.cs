@@ -9,4 +9,7 @@ public interface IDeviceService
     Task<List<Device>> ReadAll();
     Task<bool> Delete(int id);
     Task<bool> Update(int id, Device updatedDevice);
+    Task<List<Device>> ReadAvailable();
+    Task<List<Device>> ReadByProducer(int producerId);
+    Task<List<Device>> ReadByType(int typeId);
 }
