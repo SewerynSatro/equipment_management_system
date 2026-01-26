@@ -13,4 +13,4 @@ public class Producer
     
     
     public ICollection<Device> Devices { get; set; } = new List<Device>();
-}gi
+}
