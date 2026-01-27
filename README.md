@@ -36,7 +36,7 @@ System zarządzania sprzętem firmowym (Equipment Management System) - REST API 
 | Pomelo.EntityFrameworkCore.MySql | 9.0.0 | Provider MySQL dla EF Core |
 | Swashbuckle (Swagger) | 10.1.0 | Dokumentacja API |
 | NUnit | 4.2.2 | Framework testowy |
-| Docker | - | Konteneryzacja |
+| Docker | 29.2.0 | Konteneryzacja |
 
 ## Architektura
 
