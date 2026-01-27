@@ -8,11 +8,9 @@ public class Loan
 {
     [Key]
     public int Id { get; set; }
-    [JsonIgnore, ValidateNever]
     public int EmployeeId { get; set; }
     [JsonIgnore, ValidateNever]
     public Employee Employee { get; set; } = null!;
-    [JsonIgnore, ValidateNever]
     public int DeviceId { get; set; }
     [JsonIgnore, ValidateNever]
     public Device Device { get; set; } = null!;
