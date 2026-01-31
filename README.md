@@ -9,6 +9,8 @@ System zarządzania sprzętem firmowym (Equipment Management System) - REST API 
 - [Architektura](#architektura)
 - [Struktura projektu](#struktura-projektu)
 - [Model danych](#model-danych)
+- [DTOs (Data Transfer Objects)](#dtos-data-transfer-objects)
+- [FluentValidation](#fluentvalidation)
 - [Endpointy API](#endpointy-api)
 - [Instalacja i uruchomienie](#instalacja-i-uruchomienie)
 - [Docker](#docker)
@@ -36,6 +38,7 @@ System zarządzania sprzętem firmowym (Equipment Management System) - REST API 
 | Pomelo.EntityFrameworkCore.MySql | 9.0.0 | Provider MySQL dla EF Core |
 | Swashbuckle (Swagger) | 10.1.0 | Dokumentacja API |
 | NUnit | 4.2.2 | Framework testowy |
+| FluentValidation | 11.11.0 | Walidacja danych wejściowych |
 | Docker | 29.2.0 | Konteneryzacja |
 
 ## Architektura
@@ -65,6 +68,8 @@ Projekt wykorzystuje architekturę wielowarstwową z podziałem na osobne projek
 
 ## Struktura projektu
 
+## Struktura projektu
+
 ```
 emsAPI/
 ├── emsAPI/                     # Główny projekt Web API
@@ -90,6 +95,7 @@ emsAPI/
 │   ├── IProducerService.cs
 │   ├── BranchService.cs        # Implementacje
 │   ├── DeviceService.cs
+│   ├── DeviceMapper.cs
 │   ├── DeviceTypeService.cs
 │   ├── EmployeeService.cs
 │   ├── LoanService.cs
@@ -102,6 +108,19 @@ emsAPI/
 │   ├── Employee.cs
 │   ├── Loan.cs
 │   └── Producer.cs
+│
+├── DTOs/                       # Data Transfer Objects
+│   ├── DeviceCreateDto.cs
+│   ├── DeviceReadDto.cs
+│   ├── DeviceUpdateDto.cs
+│   ├── DeviceCreateDTOvalidator.cs   # FluentValidation
+│   ├── DeviceUpdateDTOvalidator.cs   # FluentValidation
+│   ├── EmployeeCreateDto.cs
+│   ├── EmployeeReadDto.cs
+│   ├── EmployeeUpdateDto.cs
+│   ├── LoanCreateDto.cs
+│   ├── LoanReadDto.cs
+│   └── LoanUpdateDto.cs
 │
 ├── Data/                       # Warstwa danych
 │   └── AppDbContext.cs
@@ -177,6 +196,63 @@ classDiagram
 | **DeviceType** | Kategoria urządzenia (np. "Laptop", "Monitor") |
 | **Producer** | Producent urządzenia (np. "Dell", "HP") |
 | **Loan** | Wypożyczenie urządzenia przez pracownika |
+
+## DTOs (Data Transfer Objects)
+
+Projekt wykorzystuje wzorzec DTO do separacji warstwy API od modeli bazodanowych. DTOs zostały zaimplementowane dla encji **Device**, **Employee** i **Loan**.
+
+### Device DTOs
+
+| DTO | Opis |
+|-----|------|
+| `DeviceCreateDto` | Tworzenie urządzenia (TypeId, ProducerId, Available, SerialNumber) |
+| `DeviceReadDto` | Odczyt urządzenia z nazwami relacji (TypeName, ProducerName) |
+| `DeviceUpdateDto` | Aktualizacja urządzenia |
+
+### Employee DTOs
+
+| DTO | Opis |
+|-----|------|
+| `EmployeeCreateDto` | Tworzenie pracownika (Name, LastName, Email, BranchId) |
+| `EmployeeReadDto` | Odczyt pracownika z nazwą oddziału (BranchName) |
+| `EmployeeUpdateDto` | Aktualizacja pracownika |
+
+### Loan DTOs
+
+| DTO | Opis |
+|-----|------|
+| `LoanCreateDto` | Tworzenie wypożyczenia (EmployeeId, DeviceId) |
+| `LoanReadDto` | Odczyt wypożyczenia z danymi pracownika i urządzenia |
+| `LoanUpdateDto` | Aktualizacja wypożyczenia (LoanDate, ReturnDate, Returned) |
+
+## FluentValidation
+
+Walidacja danych wejściowych dla **Device** z użyciem biblioteki FluentValidation.
+
+### Reguły walidacji (DeviceCreateDto / DeviceUpdateDto)
+
+| Pole | Reguła | Komunikat błędu |
+|------|--------|-----------------|
+| SerialNumber | NotEmpty | "Numer seryjny jest wymagany." |
+| SerialNumber | MaximumLength(100) | "Numer seryjny może mieć maksymalnie 100 znaków." |
+| SerialNumber | Matches(`^[A-Za-z0-9\-_]+$`) | "Numer seryjny może zawierać tylko litery, cyfry, myślniki i podkreślenia." |
+| TypeId | GreaterThan(0) | "Typ urządzenia jest wymagany." |
+| ProducerId | GreaterThan(0) | "Producent jest wymagany." |
+
+### Przykład odpowiedzi walidacji (400 Bad Request)
+
+```json
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "One or more validation errors occurred.",
+  "status": 400,
+  "errors": {
+    "SerialNumber": ["Numer seryjny jest wymagany."],
+    "TypeId": ["Typ urządzenia jest wymagany."],
+    "ProducerId": ["Producent jest wymagany."]
+  }
+}
+```
 
 ## Endpointy API
 
