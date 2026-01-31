@@ -1,5 +1,8 @@
 using Data;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
+using Models.Dtos.Device;
 using Services;
 
 namespace emsAPI;
@@ -30,6 +33,9 @@ public class Program
         builder.Services.AddScoped<IBranchService, BranchService>();
         builder.Services.AddScoped<IEmployeeService, EmployeeService>();
         builder.Services.AddScoped<ILoanService, LoanService>();
+        
+        builder.Services.AddFluentValidationAutoValidation();
+        builder.Services.AddValidatorsFromAssemblyContaining<DeviceCreateDTOvalidator>();
 
         var app = builder.Build();
 

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Data;
+using DTOs;
 using Models;
 
 namespace Services;
@@ -13,58 +14,95 @@ public class LoanService : ILoanService
         _context = context;
     }
 
-    public async Task<bool> Create(Loan loan)
+    public async Task<LoanReadDto?> Create(LoanCreateDto dto)
     {
-        var device = await _context.Devices.FindAsync(loan.DeviceId);
-        if (device == null)
-            return false;
+        var device = await _context.Devices.FindAsync(dto.DeviceId);
+        if (device == null || !device.Available)
+            return null;
 
-        if (!device.Available)
-            return false;
-
-        var employee = await _context.Employees.FindAsync(loan.EmployeeId);
+        var employee = await _context.Employees.FindAsync(dto.EmployeeId);
         if (employee == null)
-            return false;
+            return null;
+
+        var loan = new Loan
+        {
+            EmployeeId = dto.EmployeeId,
+            DeviceId = dto.DeviceId,
+            LoanDate = DateTime.UtcNow,
+            Returned = false
+        };
 
         device.Available = false;
 
         await _context.Loans.AddAsync(loan);
         await _context.SaveChangesAsync();
-        return true;
+
+        await _context.Entry(loan).Reference(l => l.Employee).LoadAsync();
+        await _context.Entry(loan).Reference(l => l.Device).LoadAsync();
+
+        return new LoanReadDto
+        {
+            Id = loan.Id,
+            EmployeeName = loan.Employee.Name,
+            EmployeeLastName = loan.Employee.LastName,
+            DeviceSerialNumber = loan.Device.SerialNumber,
+            LoanDate = loan.LoanDate,
+            ReturnDate = loan.ReturnDate,
+            Returned = loan.Returned
+        };
     }
 
-    public async Task<Loan?> ReadOne(int id)
+    public async Task<LoanReadDto?> ReadOne(int id)
     {
-        return await _context.Loans
+        var loan = await _context.Loans
             .Include(l => l.Employee)
             .Include(l => l.Device)
-            .ThenInclude(d => d.Type)
-            .Include(l => l.Device)
-            .ThenInclude(d => d.Producer)
             .FirstOrDefaultAsync(l => l.Id == id);
+
+        if (loan == null)
+            return null;
+
+        return new LoanReadDto
+        {
+            Id = loan.Id,
+            EmployeeName = loan.Employee.Name,
+            EmployeeLastName = loan.Employee.LastName,
+            DeviceSerialNumber = loan.Device.SerialNumber,
+            LoanDate = loan.LoanDate,
+            ReturnDate = loan.ReturnDate,
+            Returned = loan.Returned
+        };
     }
 
-    public async Task<List<Loan>> ReadAll()
+    public async Task<List<LoanReadDto>> ReadAll()
     {
-        return await _context.Loans
+        var loans = await _context.Loans
             .Include(l => l.Employee)
             .Include(l => l.Device)
-            .ThenInclude(d => d.Type)
-            .Include(l => l.Device)
-            .ThenInclude(d => d.Producer)
             .ToListAsync();
+
+        return loans.Select(loan => new LoanReadDto
+        {
+            Id = loan.Id,
+            EmployeeName = loan.Employee.Name,
+            EmployeeLastName = loan.Employee.LastName,
+            DeviceSerialNumber = loan.Device.SerialNumber,
+            LoanDate = loan.LoanDate,
+            ReturnDate = loan.ReturnDate,
+            Returned = loan.Returned
+        }).ToList();
     }
 
-    public async Task<bool> Update(int id, Loan updatedLoan)
+    public async Task<bool> Update(int id, LoanUpdateDto dto)
     {
         var loan = await _context.Loans.FindAsync(id);
         if (loan == null)
             return false;
 
-        loan.ReturnDate = updatedLoan.ReturnDate;
-        loan.Returned = updatedLoan.Returned;
+        loan.Returned = dto.Returned;
+        loan.ReturnDate = dto.ReturnDate;
 
-        if (updatedLoan.Returned && loan.Device != null)
+        if (dto.Returned)
         {
             var device = await _context.Devices.FindAsync(loan.DeviceId);
             if (device != null)
@@ -76,48 +114,72 @@ public class LoanService : ILoanService
         return true;
     }
 
-    public async Task<List<Loan>?> ShowUserActiveLoans(int userId)
+    public async Task<List<LoanReadDto>?> ShowUserActiveLoans(int userId)
     {
         var userExists = await _context.Employees.AnyAsync(e => e.Id == userId);
         if (!userExists)
             return null;
 
-        return await _context.Loans
+        var loans = await _context.Loans
             .Include(l => l.Employee)
             .Include(l => l.Device)
-            .ThenInclude(d => d.Type)
-            .Include(l => l.Device)
-            .ThenInclude(d => d.Producer)
             .Where(l => l.EmployeeId == userId && !l.Returned)
             .ToListAsync();
+
+        return loans.Select(loan => new LoanReadDto
+        {
+            Id = loan.Id,
+            EmployeeName = loan.Employee.Name,
+            EmployeeLastName = loan.Employee.LastName,
+            DeviceSerialNumber = loan.Device.SerialNumber,
+            LoanDate = loan.LoanDate,
+            ReturnDate = loan.ReturnDate,
+            Returned = loan.Returned
+        }).ToList();
     }
 
-    public async Task<List<Loan>?> ShowUserHistory(int userId)
+    public async Task<List<LoanReadDto>?> ShowUserHistory(int userId)
     {
         var userExists = await _context.Employees.AnyAsync(e => e.Id == userId);
         if (!userExists)
             return null;
 
-        return await _context.Loans
+        var loans = await _context.Loans
             .Include(l => l.Employee)
             .Include(l => l.Device)
-            .ThenInclude(d => d.Type)
-            .Include(l => l.Device)
-            .ThenInclude(d => d.Producer)
             .Where(l => l.EmployeeId == userId && l.Returned)
             .ToListAsync();
+
+        return loans.Select(loan => new LoanReadDto
+        {
+            Id = loan.Id,
+            EmployeeName = loan.Employee.Name,
+            EmployeeLastName = loan.Employee.LastName,
+            DeviceSerialNumber = loan.Device.SerialNumber,
+            LoanDate = loan.LoanDate,
+            ReturnDate = loan.ReturnDate,
+            Returned = loan.Returned
+        }).ToList();
     }
 
-    public async Task<List<Loan>> ShowActiveLoans()
+    public async Task<List<LoanReadDto>> ShowActiveLoans()
     {
-        return await _context.Loans
+        var loans = await _context.Loans
             .Include(l => l.Employee)
             .Include(l => l.Device)
-            .ThenInclude(d => d.Type)
-            .Include(l => l.Device)
-            .ThenInclude(d => d.Producer)
             .Where(l => !l.Returned)
             .ToListAsync();
+
+        return loans.Select(loan => new LoanReadDto
+        {
+            Id = loan.Id,
+            EmployeeName = loan.Employee.Name,
+            EmployeeLastName = loan.Employee.LastName,
+            DeviceSerialNumber = loan.Device.SerialNumber,
+            LoanDate = loan.LoanDate,
+            ReturnDate = loan.ReturnDate,
+            Returned = loan.Returned
+        }).ToList();
     }
 
     public async Task<bool> Return(int id)
