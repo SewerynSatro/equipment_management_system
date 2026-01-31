@@ -1,3 +1,4 @@
+using DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Models;
 using Services;
@@ -33,22 +34,20 @@ public class LoanController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Post([FromBody] Loan loan)
+    public async Task<IActionResult> Post([FromBody] LoanCreateDto dto)
     {
-        var ok = await _service.Create(loan);
-        if (!ok)
-            return BadRequest("Could not create loan");
-
+        var loan = await _service.Create(dto);
+        if (loan == null) return BadRequest("Could not create loan");
         return CreatedAtAction(nameof(GetOne), new { id = loan.Id }, loan);
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Put(int id, [FromBody] Loan loan)
+    public async Task<IActionResult> Put(int id, [FromBody] LoanUpdateDto dto)
     {
-        var ok = await _service.Update(id, loan);
-        if (!ok)
-            return BadRequest("Could not update loan");
-
+        var ok = await _service.Update(id, dto);
+        if (!ok) return 
+            BadRequest("Could not update loan");
+        
         return Ok("Updated");
     }
 
