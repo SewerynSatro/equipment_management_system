@@ -1,3 +1,4 @@
+using DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Models;
 using Services;
@@ -33,22 +34,18 @@ public class EmployeeController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Post([FromBody] Employee employee)
+    public async Task<IActionResult> Post([FromBody] EmployeeCreateDto dto)
     {
-        var ok = await _service.Create(employee);
-        if (!ok)
-            return BadRequest("Could not create employee");
-
-        return CreatedAtAction(nameof(GetOne), new { id = employee.Id }, employee);
+        var employee = await _service.Create(dto);
+        if (employee == null) return BadRequest("Could not create employee");
+        return CreatedAtAction(nameof(GetOne), new { id = dto }, employee);
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Put(int id, [FromBody] Employee employee)
+    public async Task<IActionResult> Put(int id, [FromBody] EmployeeUpdateDto dto)
     {
-        var ok = await _service.Update(id, employee);
-        if (!ok)
-            return BadRequest("Could not update employee");
-
+        var ok = await _service.Update(id, dto);
+        if (!ok) return BadRequest("Could not update employee");
         return Ok("Updated");
     }
 
