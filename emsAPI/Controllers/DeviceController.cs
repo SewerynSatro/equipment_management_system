@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Models;
+using Models.Dtos.Device;
 using Services;
 
 namespace Controllers;
@@ -33,32 +33,36 @@ public class DeviceController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Post([FromBody] Device device)
+    public async Task<IActionResult> Post([FromBody] DeviceCreateDto dto)
     {
-        if (string.IsNullOrWhiteSpace(device.SerialNumber))
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        if (string.IsNullOrWhiteSpace(dto.SerialNumber))
             return BadRequest("Serial number is required.");
 
-        var ok = await _s.Create(device);
-        if (!ok)
+        var result = await _s.Create(dto);
+        if (result == null)
             return Conflict("Device with this serial number already exists.");
 
-        return CreatedAtAction(nameof(GetOne), new { id = device.Id }, device);
+        return CreatedAtAction(nameof(GetOne), new { id = result.Id }, result);
     }
-
 
     [HttpPut("{id:int}")]
-    public async Task<IActionResult> Put(int id, [FromBody] Device device)
+    public async Task<IActionResult> Put(int id, [FromBody] DeviceUpdateDto dto)
     {
-        if (string.IsNullOrWhiteSpace(device.SerialNumber))
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        if (string.IsNullOrWhiteSpace(dto.SerialNumber))
             return BadRequest("Serial number is required.");
 
-        var ok = await _s.Update(id, device);
-        if (!ok)
-            return Conflict("Device with this serial number already exists.");
+        var result = await _s.Update(id, dto);
+        if (result == null)
+            return Conflict("Device not found or serial number already exists.");
 
-        return Ok("Updated");
+        return Ok(result);
     }
-
 
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)

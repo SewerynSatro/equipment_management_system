@@ -1,6 +1,7 @@
 ﻿using Data;
 using Microsoft.EntityFrameworkCore;
 using Models;
+using Models.Dtos.Device;
 using NUnit.Framework;
 using Services;
 
@@ -36,8 +37,8 @@ public class DeviceServiceTests
         await dbContext.SaveChangesAsync();
     }
 
-    [Test, Description("Create should return false when SerialNumber is null/empty/whitespace")]
-    public async Task Create_ShouldReturnFalse_WhenSerialNumberIsInvalid()
+    [Test, Description("Create should return null when SerialNumber is null/empty/whitespace")]
+    public async Task Create_ShouldReturnNull_WhenSerialNumberIsInvalid()
     {
         // Arrange
         var databaseName = Guid.NewGuid().ToString();
@@ -48,7 +49,7 @@ public class DeviceServiceTests
 
         var deviceService = new DeviceService(dbContext);
 
-        var deviceToCreate = new Device
+        var deviceToCreate = new DeviceCreateDto
         {
             TypeId = 1,
             ProducerId = 1,
@@ -57,17 +58,17 @@ public class DeviceServiceTests
         };
 
         // Act
-        var created = await deviceService.Create(deviceToCreate);
+        var result = await deviceService.Create(deviceToCreate);
 
         // Assert
-        Assert.That(created, Is.False);
+        Assert.That(result, Is.Null);
 
         var devicesInDatabase = await dbContext.Devices.ToListAsync();
         Assert.That(devicesInDatabase, Has.Count.EqualTo(0));
     }
 
     [Test, Description("Create should trim SerialNumber and prevent duplicates (case-insensitive)")]
-    public async Task Create_ShouldReturnFalse_WhenDuplicateSerialNumberExists_IgnoringCaseAndTrim()
+    public async Task Create_ShouldReturnNull_WhenDuplicateSerialNumberExists_IgnoringCaseAndTrim()
     {
         // Arrange
         var databaseName = Guid.NewGuid().ToString();
@@ -90,7 +91,7 @@ public class DeviceServiceTests
 
         var deviceService = new DeviceService(dbContext);
 
-        var deviceToCreate = new Device
+        var deviceToCreate = new DeviceCreateDto
         {
             TypeId = 1,
             ProducerId = 1,
@@ -99,18 +100,18 @@ public class DeviceServiceTests
         };
 
         // Act
-        var created = await deviceService.Create(deviceToCreate);
+        var result = await deviceService.Create(deviceToCreate);
 
         // Assert
-        Assert.That(created, Is.False);
+        Assert.That(result, Is.Null);
 
         var devicesInDatabase = await dbContext.Devices.ToListAsync();
         Assert.That(devicesInDatabase, Has.Count.EqualTo(1));
         Assert.That(devicesInDatabase.Single().SerialNumber, Is.EqualTo("ABC-123"));
     }
 
-    [Test, Description("Create should persist a Device and return true for valid data")]
-    public async Task Create_ShouldReturnTrue_AndPersistDevice_WhenDataIsValid()
+    [Test, Description("Create should persist a Device and return DeviceReadDto for valid data")]
+    public async Task Create_ShouldReturnDeviceReadDto_AndPersistDevice_WhenDataIsValid()
     {
         // Arrange
         var databaseName = Guid.NewGuid().ToString();
@@ -121,7 +122,7 @@ public class DeviceServiceTests
 
         var deviceService = new DeviceService(dbContext);
 
-        var deviceToCreate = new Device
+        var deviceToCreate = new DeviceCreateDto
         {
             TypeId = 1,
             ProducerId = 1,
@@ -130,17 +131,20 @@ public class DeviceServiceTests
         };
 
         // Act
-        var created = await deviceService.Create(deviceToCreate);
+        var result = await deviceService.Create(deviceToCreate);
 
         // Assert
-        Assert.That(created, Is.True);
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.SerialNumber, Is.EqualTo("NEW-001")); // trimmed
+        Assert.That(result.Available, Is.True);
+        Assert.That(result.TypeId, Is.EqualTo(1));
+        Assert.That(result.ProducerId, Is.EqualTo(1));
+        Assert.That(result.TypeName, Is.EqualTo("Laptop"));
+        Assert.That(result.ProducerName, Is.EqualTo("Dell"));
 
         var devicesInDatabase = await dbContext.Devices.ToListAsync();
         Assert.That(devicesInDatabase, Has.Count.EqualTo(1));
-        Assert.That(devicesInDatabase.Single().SerialNumber, Is.EqualTo("NEW-001")); // trimmed
-        Assert.That(devicesInDatabase.Single().Available, Is.True);
-        Assert.That(devicesInDatabase.Single().TypeId, Is.EqualTo(1));
-        Assert.That(devicesInDatabase.Single().ProducerId, Is.EqualTo(1));
+        Assert.That(devicesInDatabase.Single().SerialNumber, Is.EqualTo("NEW-001"));
     }
 
     [Test, Description("ReadOne should return null when Device does not exist")]
@@ -160,8 +164,41 @@ public class DeviceServiceTests
         Assert.That(device, Is.Null);
     }
 
-    [Test, Description("ReadAll should return all devices")]
-    public async Task ReadAll_ShouldReturnAllDevices()
+    [Test, Description("ReadOne should return DeviceReadDto with related data")]
+    public async Task ReadOne_ShouldReturnDeviceReadDto_WithRelatedData()
+    {
+        // Arrange
+        var databaseName = Guid.NewGuid().ToString();
+        var dbContextOptions = CreateInMemoryOptions(databaseName);
+
+        await using var dbContext = new AppDbContext(dbContextOptions);
+        await SeedProducerAndTypeAsync(dbContext, producerId: 1, typeId: 1);
+
+        dbContext.Devices.Add(new Device
+        {
+            Id = 1,
+            TypeId = 1,
+            ProducerId = 1,
+            Available = true,
+            SerialNumber = "SN-001"
+        });
+        await dbContext.SaveChangesAsync();
+
+        var deviceService = new DeviceService(dbContext);
+
+        // Act
+        var result = await deviceService.ReadOne(id: 1);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Id, Is.EqualTo(1));
+        Assert.That(result.SerialNumber, Is.EqualTo("SN-001"));
+        Assert.That(result.TypeName, Is.EqualTo("Laptop"));
+        Assert.That(result.ProducerName, Is.EqualTo("Dell"));
+    }
+
+    [Test, Description("ReadAll should return all devices as DeviceReadDto")]
+    public async Task ReadAll_ShouldReturnAllDevicesAsDto()
     {
         // Arrange
         var databaseName = Guid.NewGuid().ToString();
@@ -184,6 +221,8 @@ public class DeviceServiceTests
         // Assert
         Assert.That(devices, Has.Count.EqualTo(2));
         Assert.That(devices.Select(d => d.SerialNumber), Is.EquivalentTo(new[] { "A-1", "A-2" }));
+        Assert.That(devices.All(d => d.TypeName == "Laptop"), Is.True);
+        Assert.That(devices.All(d => d.ProducerName == "Dell"), Is.True);
     }
 
     [Test, Description("Delete should return false when Device does not exist")]
@@ -235,8 +274,8 @@ public class DeviceServiceTests
         Assert.That(deviceInDatabase, Is.Null);
     }
 
-    [Test, Description("Update should return false when SerialNumber is invalid")]
-    public async Task Update_ShouldReturnFalse_WhenSerialNumberIsInvalid()
+    [Test, Description("Update should return null when SerialNumber is invalid")]
+    public async Task Update_ShouldReturnNull_WhenSerialNumberIsInvalid()
     {
         // Arrange
         var databaseName = Guid.NewGuid().ToString();
@@ -257,7 +296,7 @@ public class DeviceServiceTests
 
         var deviceService = new DeviceService(dbContext);
 
-        var updatedDevice = new Device
+        var updateDto = new DeviceUpdateDto
         {
             TypeId = 1,
             ProducerId = 1,
@@ -266,18 +305,18 @@ public class DeviceServiceTests
         };
 
         // Act
-        var updated = await deviceService.Update(id: 1, updatedDevice: updatedDevice);
+        var result = await deviceService.Update(id: 1, dto: updateDto);
 
         // Assert
-        Assert.That(updated, Is.False);
+        Assert.That(result, Is.Null);
 
         var deviceInDatabase = await dbContext.Devices.FindAsync(1);
         Assert.That(deviceInDatabase!.Available, Is.True); // unchanged
         Assert.That(deviceInDatabase.SerialNumber, Is.EqualTo("X-1"));
     }
 
-    [Test, Description("Update should return false when Device does not exist")]
-    public async Task Update_ShouldReturnFalse_WhenDeviceDoesNotExist()
+    [Test, Description("Update should return null when Device does not exist")]
+    public async Task Update_ShouldReturnNull_WhenDeviceDoesNotExist()
     {
         // Arrange
         var databaseName = Guid.NewGuid().ToString();
@@ -286,7 +325,7 @@ public class DeviceServiceTests
         await using var dbContext = new AppDbContext(dbContextOptions);
         var deviceService = new DeviceService(dbContext);
 
-        var updatedDevice = new Device
+        var updateDto = new DeviceUpdateDto
         {
             TypeId = 1,
             ProducerId = 1,
@@ -295,14 +334,14 @@ public class DeviceServiceTests
         };
 
         // Act
-        var updated = await deviceService.Update(id: 999, updatedDevice: updatedDevice);
+        var result = await deviceService.Update(id: 999, dto: updateDto);
 
         // Assert
-        Assert.That(updated, Is.False);
+        Assert.That(result, Is.Null);
     }
 
-    [Test, Description("Update should return false when SerialNumber duplicates another Device (case-insensitive)")]
-    public async Task Update_ShouldReturnFalse_WhenSerialNumberDuplicatesAnotherDevice()
+    [Test, Description("Update should return null when SerialNumber duplicates another Device (case-insensitive)")]
+    public async Task Update_ShouldReturnNull_WhenSerialNumberDuplicatesAnotherDevice()
     {
         // Arrange
         var databaseName = Guid.NewGuid().ToString();
@@ -319,7 +358,7 @@ public class DeviceServiceTests
 
         var deviceService = new DeviceService(dbContext);
 
-        var updatedDevice = new Device
+        var updateDto = new DeviceUpdateDto
         {
             TypeId = 1,
             ProducerId = 1,
@@ -328,18 +367,18 @@ public class DeviceServiceTests
         };
 
         // Act
-        var updated = await deviceService.Update(id: 1, updatedDevice: updatedDevice);
+        var result = await deviceService.Update(id: 1, dto: updateDto);
 
         // Assert
-        Assert.That(updated, Is.False);
+        Assert.That(result, Is.Null);
 
         var deviceInDatabase = await dbContext.Devices.FindAsync(1);
         Assert.That(deviceInDatabase!.SerialNumber, Is.EqualTo("KEEP-001"));
         Assert.That(deviceInDatabase.Available, Is.True);
     }
 
-    [Test, Description("Update should update fields and return true when data is valid")]
-    public async Task Update_ShouldReturnTrue_AndUpdateFields_WhenDataIsValid()
+    [Test, Description("Update should update fields and return DeviceReadDto when data is valid")]
+    public async Task Update_ShouldReturnDeviceReadDto_AndUpdateFields_WhenDataIsValid()
     {
         // Arrange
         var databaseName = Guid.NewGuid().ToString();
@@ -347,8 +386,14 @@ public class DeviceServiceTests
 
         await using var dbContext = new AppDbContext(dbContextOptions);
 
-        await SeedProducerAndTypeAsync(dbContext, producerId: 1, typeId: 1);
-        await SeedProducerAndTypeAsync(dbContext, producerId: 2, typeId: 2);
+        // Seed two producers and two types
+        var producer1 = new Producer { Id = 1, Name = "Dell" };
+        var producer2 = new Producer { Id = 2, Name = "HP" };
+        var type1 = new DeviceType { Id = 1, Name = "Laptop" };
+        var type2 = new DeviceType { Id = 2, Name = "Monitor" };
+
+        dbContext.Producers.AddRange(producer1, producer2);
+        dbContext.DeviceTypes.AddRange(type1, type2);
 
         dbContext.Devices.Add(new Device
         {
@@ -362,7 +407,7 @@ public class DeviceServiceTests
 
         var deviceService = new DeviceService(dbContext);
 
-        var updatedDevice = new Device
+        var updateDto = new DeviceUpdateDto
         {
             TypeId = 2,
             ProducerId = 2,
@@ -371,10 +416,17 @@ public class DeviceServiceTests
         };
 
         // Act
-        var updated = await deviceService.Update(id: 1, updatedDevice: updatedDevice);
+        var result = await deviceService.Update(id: 1, dto: updateDto);
 
         // Assert
-        Assert.That(updated, Is.True);
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Id, Is.EqualTo(1));
+        Assert.That(result.TypeId, Is.EqualTo(2));
+        Assert.That(result.ProducerId, Is.EqualTo(2));
+        Assert.That(result.Available, Is.False);
+        Assert.That(result.SerialNumber, Is.EqualTo("NEW-001"));
+        Assert.That(result.TypeName, Is.EqualTo("Monitor"));
+        Assert.That(result.ProducerName, Is.EqualTo("HP"));
 
         var deviceInDatabase = await dbContext.Devices.FindAsync(1);
         Assert.That(deviceInDatabase, Is.Not.Null);
@@ -384,8 +436,8 @@ public class DeviceServiceTests
         Assert.That(deviceInDatabase.SerialNumber, Is.EqualTo("NEW-001"));
     }
 
-    [Test, Description("ReadAvailable should return only devices where Available == true")]
-    public async Task ReadAvailable_ShouldReturnOnlyAvailableDevices()
+    [Test, Description("ReadAvailable should return only devices where Available == true as DeviceReadDto")]
+    public async Task ReadAvailable_ShouldReturnOnlyAvailableDevicesAsDto()
     {
         // Arrange
         var databaseName = Guid.NewGuid().ToString();
@@ -408,10 +460,12 @@ public class DeviceServiceTests
         // Assert
         Assert.That(devices, Has.Count.EqualTo(1));
         Assert.That(devices.Single().SerialNumber, Is.EqualTo("AV-1"));
+        Assert.That(devices.Single().Available, Is.True);
+        Assert.That(devices.Single().TypeName, Is.EqualTo("Laptop"));
     }
 
-    [Test, Description("ReadByProducer should return all devices for a given ProducerId")]
-    public async Task ReadByProducer_ShouldReturnDevicesForProducer()
+    [Test, Description("ReadByProducer should return all devices for a given ProducerId as DeviceReadDto")]
+    public async Task ReadByProducer_ShouldReturnDevicesForProducerAsDto()
     {
         // Arrange
         var databaseName = Guid.NewGuid().ToString();
@@ -441,10 +495,11 @@ public class DeviceServiceTests
         // Assert
         Assert.That(devices, Has.Count.EqualTo(2));
         Assert.That(devices.Select(d => d.SerialNumber), Is.EquivalentTo(new[] { "P1-1", "P1-2" }));
+        Assert.That(devices.All(d => d.ProducerName == "Dell"), Is.True);
     }
 
-    [Test, Description("ReadByType should return all devices for a given TypeId")]
-    public async Task ReadByType_ShouldReturnDevicesForType()
+    [Test, Description("ReadByType should return all devices for a given TypeId as DeviceReadDto")]
+    public async Task ReadByType_ShouldReturnDevicesForTypeAsDto()
     {
         // Arrange
         var databaseName = Guid.NewGuid().ToString();
@@ -474,5 +529,6 @@ public class DeviceServiceTests
         // Assert
         Assert.That(devices, Has.Count.EqualTo(2));
         Assert.That(devices.Select(d => d.SerialNumber), Is.EquivalentTo(new[] { "T1-1", "T1-2" }));
+        Assert.That(devices.All(d => d.TypeName == "Laptop"), Is.True);
     }
 }
