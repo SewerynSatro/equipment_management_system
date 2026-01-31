@@ -1,15 +1,15 @@
-﻿using Models;
+﻿using Models.Dtos.Device;
 
 namespace Services;
 
 public interface IDeviceService
 {
-    Task<bool> Create(Device device);
-    Task<Device?> ReadOne(int id);
-    Task<List<Device>> ReadAll();
+    Task<DeviceReadDto?> Create(DeviceCreateDto dto);
+    Task<DeviceReadDto?> ReadOne(int id);
+    Task<List<DeviceReadDto>> ReadAll();
     Task<bool> Delete(int id);
-    Task<bool> Update(int id, Device updatedDevice);
-    Task<List<Device>> ReadAvailable();
-    Task<List<Device>> ReadByProducer(int producerId);
-    Task<List<Device>> ReadByType(int typeId);
+    Task<DeviceReadDto?> Update(int id, DeviceUpdateDto dto);
+    Task<List<DeviceReadDto>> ReadAvailable();
+    Task<List<DeviceReadDto>> ReadByProducer(int producerId);
+    Task<List<DeviceReadDto>> ReadByType(int typeId);
 }

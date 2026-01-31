@@ -1,6 +1,7 @@
 ﻿using Data;
 using Microsoft.EntityFrameworkCore;
 using Models;
+using Models.Dtos.Device;
 
 namespace Services;
 
@@ -13,48 +14,60 @@ public class DeviceService : IDeviceService
         _context = context;
     }
 
-    public async Task<bool> Create(Device device)
+    public async Task<DeviceReadDto?> Create(DeviceCreateDto dto)
     {
-        if (string.IsNullOrWhiteSpace(device.SerialNumber))
-            return false;
+        if (string.IsNullOrWhiteSpace(dto.SerialNumber))
+            return null;
 
-        device.SerialNumber = device.SerialNumber.Trim();
-        var normalized = device.SerialNumber.ToUpperInvariant();
+        var serialNumber = dto.SerialNumber.Trim();
+        var normalized = serialNumber.ToUpperInvariant();
 
         var exists = await _context.Devices
             .AnyAsync(d => d.SerialNumber.ToUpper() == normalized);
 
         if (exists)
-            return false;
+            return null;
 
         try
         {
+            var device = DeviceMapper.ToEntity(dto);
+            device.SerialNumber = serialNumber;
+            
             _context.Devices.Add(device);
-            var created = await _context.SaveChangesAsync();
-            return created > 0;
+            await _context.SaveChangesAsync();
+            
+            // Załaduj powiązane encje dla pełnego DTO
+            await _context.Entry(device).Reference(d => d.Type).LoadAsync();
+            await _context.Entry(device).Reference(d => d.Producer).LoadAsync();
+            
+            return DeviceMapper.ToReadDto(device);
         }
         catch (DbUpdateException)
         {
-            return false;
+            return null;
         }
     }
 
-    public async Task<Device?> ReadOne(int id)
+    public async Task<DeviceReadDto?> ReadOne(int id)
     {
-        return await _context.Devices
+        var device = await _context.Devices
             .Include(d => d.Type)
             .Include(d => d.Producer)
             .Include(d => d.Loans)
             .FirstOrDefaultAsync(d => d.Id == id);
+            
+        return device == null ? null : DeviceMapper.ToReadDto(device);
     }
 
-    public async Task<List<Device>> ReadAll()
+    public async Task<List<DeviceReadDto>> ReadAll()
     {
-        return await _context.Devices
+        var devices = await _context.Devices
             .Include(d => d.Type)
             .Include(d => d.Producer)
             .Include(d => d.Loans)
             .ToListAsync();
+            
+        return DeviceMapper.ToReadDtoList(devices);
     }
 
     public async Task<bool> Delete(int id)
@@ -67,64 +80,72 @@ public class DeviceService : IDeviceService
         return deleted > 0;
     }
 
-    public async Task<bool> Update(int id, Device updatedDevice)
+    public async Task<DeviceReadDto?> Update(int id, DeviceUpdateDto dto)
     {
-        if (string.IsNullOrWhiteSpace(updatedDevice.SerialNumber))
-            return false;
+        if (string.IsNullOrWhiteSpace(dto.SerialNumber))
+            return null;
 
-        updatedDevice.SerialNumber = updatedDevice.SerialNumber.Trim();
-        var normalized = updatedDevice.SerialNumber.ToUpperInvariant();
+        var serialNumber = dto.SerialNumber.Trim();
+        var normalized = serialNumber.ToUpperInvariant();
         
         var device = await _context.Devices.FindAsync(id);
-        if (device == null) return false;
+        if (device == null) return null;
         
         var exists = await _context.Devices
             .AnyAsync(d => d.Id != id && d.SerialNumber.ToUpper() == normalized);
 
         if (exists)
-            return false;
+            return null;
         
-        device.TypeId = updatedDevice.TypeId;
-        device.ProducerId = updatedDevice.ProducerId;
-        
-        device.SerialNumber = updatedDevice.SerialNumber;
-        device.Available = updatedDevice.Available;
+        DeviceMapper.UpdateEntity(device, dto);
+        device.SerialNumber = serialNumber;
 
         try
         {
-            var updated = await _context.SaveChangesAsync();
-            return updated > 0;
+            await _context.SaveChangesAsync();
+            
+            // Załaduj powiązane encje dla pełnego DTO
+            await _context.Entry(device).Reference(d => d.Type).LoadAsync();
+            await _context.Entry(device).Reference(d => d.Producer).LoadAsync();
+            
+            return DeviceMapper.ToReadDto(device);
         }
         catch (DbUpdateException)
         {
-            return false;
+            return null;
         }
     }
     
-    public async Task<List<Device>> ReadAvailable()
+    public async Task<List<DeviceReadDto>> ReadAvailable()
     {
-        return await _context.Devices
+        var devices = await _context.Devices
             .Where(d => d.Available)
             .Include(d => d.Type)
             .Include(d => d.Producer)
             .ToListAsync();
+            
+        return DeviceMapper.ToReadDtoList(devices);
     }
     
-    public async Task<List<Device>> ReadByProducer(int producerId)
+    public async Task<List<DeviceReadDto>> ReadByProducer(int producerId)
     {
-        return await _context.Devices
+        var devices = await _context.Devices
             .Where(d => d.ProducerId == producerId)
             .Include(d => d.Type)
             .Include(d => d.Producer)
             .ToListAsync();
+            
+        return DeviceMapper.ToReadDtoList(devices);
     }
 
-    public async Task<List<Device>> ReadByType(int typeId)
+    public async Task<List<DeviceReadDto>> ReadByType(int typeId)
     {
-        return await _context.Devices
+        var devices = await _context.Devices
             .Where(d => d.TypeId == typeId)
             .Include(d => d.Type)
             .Include(d => d.Producer)
             .ToListAsync();
+            
+        return DeviceMapper.ToReadDtoList(devices);
     }
 }
